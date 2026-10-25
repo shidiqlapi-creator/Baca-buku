@@ -1,25 +1,43 @@
-const CACHE_NAME = 'baca-harian-v1';
-const urlsToCache = [
-'./',
-'./index.html',
-'./manifest.json',
-'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
-'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js'
+const CACHE_NAME = 'baca-harian-v2'; // UBAH VERSI INI SETIAP KALI UPDATE
+
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './manifest.json',
+  './styles.css',
+  './app.js'
 ];
-self.addEventListener('install', event => {
-event.waitUntil(
-caches.open(CACHE_NAME)
-.then(cache => cache.addAll(urlsToCache))
-);
+
+// 1. Install Event: Simpan aset baru
+self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Memaksa SW baru segera aktif
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
 });
-self.addEventListener('fetch', event => {
-event.respondWith(
-caches.match(event.request)
-.then(response => {
-if (response) {
-return response;
-}
-return fetch(event.request);
-})
-);
+
+// 2. Activate Event: Hapus cache lama
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache); // Hapus cache versi sebelumnya
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// 3. Fetch Event
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
 });
