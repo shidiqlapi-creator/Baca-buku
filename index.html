@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard Baca Harian</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f7d5b">
+<style>
+:root{--bg:#faf8f4;--card:#fff;--tx:#222;--mu:#777;--ac:#2f7d5b;--tr:#e6e2d9;--bd:#e3dfd6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151714;--card:#202320;--tx:#eee;--mu:#9a9a94;--ac:#5fc79a;--tr:#33372f;--bd:#33372f}}
+:root[data-theme="dark"]{--bg:#151714;--card:#202320;--tx:#eee;--mu:#9a9a94;--ac:#5fc79a;--tr:#33372f;--bd:#33372f}
+:root[data-theme="light"]{--bg:#faf8f4;--card:#fff;--tx:#222;--mu:#777;--ac:#2f7d5b;--tr:#e6e2d9;--bd:#e3dfd6}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,sans-serif;padding:16px;max-width:560px;margin:auto}
+h1{font-size:20px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.big{font-size:40px;font-weight:700;color:var(--ac)}
+.mu{color:var(--mu);font-size:13px}
+.bar{height:12px;background:var(--tr);border-radius:8px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--ac);width:0;transition:width .4s}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:90px}
+input,select,textarea,button{font:inherit;padding:9px;border-radius:9px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100%}
+textarea{resize:vertical;min-height:60px}
+button{background:var(--ac);color:#fff;border:0;font-weight:600;cursor:pointer}
+label{font-size:12px;color:var(--mu);display:block;margin:6px 0 2px}
+.stat{display:flex;justify-content:space-between;gap:8px;text-align:center}.stat b{display:block;font-size:22px}
+.log{display:flex;flex-direction:column;gap:4px;padding:8px 0;border-top:1px solid var(--bd);font-size:14px}
+.log-header{display:flex;justify-content:space-between;align-items:center}
+.log-note{font-size:13px;font-style:italic;color:var(--mu);background:var(--tr);padding:6px 10px;border-radius:6px;margin-top:4px}
+.log a{color:var(--mu);cursor:pointer}
+svg{width:100%;height:120px}
+h1{margin:4px 0 12px 52px}
+nav#sb{position:fixed;top:0;left:0;bottom:0;width:210px;background:var(--card);border-right:1px solid var(--bd);padding:calc(56px + env(safe-area-inset-top,0px)) 10px 16px;z-index:20;transform:translateX(-100%);transition:transform .25s;display:flex;flex-direction:column;justify-content:space-between}
+nav#sb.open{transform:none}
+nav a{display:block;padding:10px 12px;border-radius:10px;margin-bottom:4px;cursor:pointer}
+nav a.on{background:var(--ac);color:#fff}
+#mb{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:8px;z-index:30;width:auto;padding:8px 14px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.stc{background:var(--bg);border-radius:10px;padding:10px;text-align:center}.stc b{display:block;font-size:22px;color:var(--ac)}
+.theme-btn{background:var(--tr);color:var(--tx);font-size:12px;margin-top:8px;padding:6px 10px;border-radius:8px;text-align:center;cursor:pointer;border:1px solid var(--bd)}
+.card-share{border:2px dashed var(--ac);padding:16px;border-radius:12px;background:var(--card);text-align:center;margin-top:10px}
+@media(min-width:800px){nav#sb{transform:none!important;padding-top:20px}#mb{display:none}body{margin:0 auto 0 230px;max-width:760px}h1{margin-left:0}}
+ul{padding-left:18px;margin:8px 0 0}li{margin:6px 0;font-size:14px}
+.badge{display:inline-block;padding:2px 6px;border-radius:4px;background:var(--tr);font-size:11px;color:var(--mu);margin-left:4px}
+</style>
+<!-- Firebase JS SDK (v9 Moduler CDN via App Compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head><body>
+<nav id="sb">
+  <div>
+    <b style="display:block;margin:6px 12px 12px">📖 Baca</b>
+    <a data-n="ringkasan">🏠 Dashboard</a>
+    <a data-n="buku">📚 Buku saya</a>
+    <a data-n="catat">✏️ Catat bacaan</a>
+    <a data-n="statistik">📊 Statistik</a>
+    <a data-n="rekomendasi">💡 Rekomendasi</a>
+  </div>
+  <div>
+    <div class="theme-btn" id="thm">🎨 Tema: Otomatis</div>
+  </div>
+</nav>
+<button id="mb">☰</button>
+<h1 id="ttl">📖 Dashboard Baca Harian</h1>
+<div id="wr" class="card" style="display:none;border-color:#c0392b;font-size:14px"></div>
+
+<section data-p="ringkasan">
+<div class="card"><label>Buku</label><select id="bk"></select>
+<div class="big" id="pct">0%</div><div class="bar"><i id="fill"></i></div>
+<div class="mu" id="sub"></div>
+<button id="rr" style="display:none;margin-top:10px">🔁 Baca ulang (mulai putaran baru)</button></div>
+<div class="card stat"><div><b id="today">0</b><span class="mu">hlm hari ini</span></div><div><b id="week">0</b><span class="mu">hlm 7 hari</span></div><div><b id="streak">0</b><span class="mu">hari beruntun</span></div></div>
+<div class="card"><div class="mu">Halaman per hari (7 hari terakhir)</div><svg id="ch" viewBox="0 0 300 120"></svg></div>
+</section>
+
+<section data-p="rekomendasi">
+<div class="card"><b>💡 Rekomendasi & Proyeksi</b><label>Target selesai (opsional)</label><input id="tg" type="date"><ul id="rec"></ul></div>
+<div class="card"><b>🔍 Kebiasaan bacaanmu</b><ul id="hab"></ul></div>
+<div class="card"><b>📚 Rekomendasi Buku Baru</b><div id="nb"></div></div>
+</section>
+
+<section data-p="buku">
+<div class="card"><b>Semua buku</b><div class="mu">Ketuk buku untuk membuka dashboard-nya</div><div id="allb"></div></div>
+<div class="card" id="eb" style="display:none"><b>✏️ Ubah buku</b>
+<label>Judul buku</label><input id="et">
+<div class="row">
+  <div><label>Penulis</label><input id="ea" placeholder="Opsional"></div>
+  <div><label>Kategori / Genre</label><input id="eg" placeholder="Contoh: Pengembangan Diri"></div>
+</div>
+<label>Total halaman</label><input id="en" type="number" min="1">
+<div class="row" style="margin-top:10px"><button id="esv">Simpan</button><button id="edl" style="background:#c0392b">Hapus buku</button></div>
+<button id="ecx" style="background:var(--tr);color:var(--tx);margin-top:8px">Batal</button></div>
+
+<div class="card"><b>➕ Tambah buku</b>
+<label>Judul buku</label><input id="nt" placeholder="Contoh: Atomic Habits">
+<div class="row">
+  <div><label>Penulis (opsional)</label><input id="na"></div>
+  <div><label>Kategori / Genre</label><input id="ng" placeholder="Contoh: Produktivitas"></div>
+</div>
+<label>Total halaman</label><input id="nn" type="number" min="1" placeholder="Contoh: 320">
+<div class="mu" style="margin-top:6px">Isi total halaman untuk langsung mulai baca. Kosongkan untuk menyimpan ke daftar keinginan (wishlist).</div>
+<p></p><button id="nadd">Tambah Buku</button>
+<b style="display:block;margin-top:14px">📚 Daftar bacaan / Wishlist</b><div id="wl"></div></div>
+</section>
+
+<section data-p="catat">
+<div class="card"><b>Catat bacaan</b>
+<label>Judul buku</label><select id="t"></select>
+<div class="row"><div><label>Total halaman</label><input id="tot" type="number" readonly style="opacity:.7"></div><div><label>Tanggal</label><input id="d" type="date"></div></div>
+<div class="row"><div><label>Dari hlm</label><input id="f" type="number" min="1"></div><div><label>Sampai hlm</label><input id="e" type="number" min="1"></div></div>
+<label>Catatan / Kutipan Favorit (Opsional)</label>
+<textarea id="ntxt" placeholder="Tulis ringkasan singkat atau kutipan menarik dari halaman yang kamu baca..."></textarea>
+<p></p><button id="add">Simpan Bacaan</button><button id="lc" style="display:none;background:var(--tr);color:var(--tx);margin-top:8px">Batal ubah</button></div>
+<div class="card"><b>Riwayat Catatan</b><div id="logs"></div></div>
+</section>
+
+<section data-p="statistik">
+<div class="card"><b>Ringkasan semua buku</b><div class="g" id="st"></div><div class="mu" id="best" style="margin-top:8px"></div></div>
+<div class="card"><b>Distribusi Genre / Kategori</b><div id="gnr" style="margin-top:8px"></div></div>
+<div class="card"><b>Kalender membaca (12 minggu)</b><svg id="hm" viewBox="0 0 252 147" style="height:auto;margin-top:8px"></svg><div class="mu" id="hd">Ketuk kotak untuk melihat detail</div></div>
+
+<div class="card"><b>📱 Kartu Pencapaian Membaca</b>
+<div class="mu">Bagikan progres membacamu ke media sosial!</div>
+<div class="card-share" id="scard">
+  <div style="font-size:12px;color:var(--mu);margin-bottom:4px">DASHBOARD BACA HARIAN</div>
+  <b style="font-size:18px;color:var(--ac)" id="sttl">Total 0 Halaman Dibaca</b>
+  <div style="font-size:13px;margin-top:6px" id="ssub">0 Buku Tamat · 0 Hari Beruntun</div>
+  <div style="font-size:11px;color:var(--mu);margin-top:10px;font-style:italic">"Membaca adalah jendela dunia."</div>
+</div>
+</div>
+
+<div class="card"><b>💾 Cadangan & Ekspor Data</b>
+<div class="mu">Unduh data milikmu, ekspor ke CSV untuk Excel, atau impor file cadangan.</div>
+<div class="mu" id="cl" style="margin-top:6px">☁️ Sinkronisasi Firebase...</div>
+<div class="row" style="margin-top:10px">
+  <button id="xp">⬇️ JSON</button>
+  <button id="xcsv" style="background:var(--tr);color:var(--tx)">📊 CSV (Excel)</button>
+  <button id="im" style="background:var(--tr);color:var(--tx)">⬆️ Impor</button>
+</div>
+<input id="fi" type="file" accept=".json,application/json" style="display:none">
+<div class="mu" id="bm" style="margin-top:8px"></div></div>
+</section>
+
+<script>
+// --- KONFIGURASI FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyC_BLhEsBj-tgvINllYScA5aTXC3gv1OD0",
+  authDomain: "baca-buku-4cec8.firebaseapp.com",
+  projectId: "baca-buku-4cec8",
+  storageBucket: "baca-buku-4cec8.firebasestorage.app",
+  messagingSenderId: "60082725935",
+  appId: "1:60082725935:web:31ffdb4063dc22844a52da",
+  measurementId: "G-R9GWN20Y7B"
+};
+
+var db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+} catch(e) {
+  console.log("Firebase Error / Offline Mode:", e);
+}
+
+var S={books:{},logs:[],sel:"",theme:"auto",genres:{}};
+
+function load(){
+  try{
+    var r=localStorage.getItem("baca");
+    if(r){
+      S=JSON.parse(r);
+      if(!S.ts)S.ts=1;
+      if(!S.genres)S.genres={};
+      if(!S.theme)S.theme="auto";
+    }
+  }catch(x){}
+  if(!S.logs.length&&!Object.keys(S.books).length&&!S.init){
+    S={
+      books:{"Ikigai":208},
+      genres:{"Ikigai":"Pengembangan Diri"},
+      logs:[{id:1,date:td(),book:"Ikigai",from:9,to:25,note:"Menemukan alasan untuk bangun setiap pagi."}],
+      sel:"Ikigai",
+      theme:"auto"
+    };
+  }
+  applyTheme(S.theme);
+}
+
+var last="";
+function sig(){return JSON.stringify(S,function(k,v){return k=="ts"?undefined:v})}
+
+function save(){
+  var j=sig();if(j==last)return;last=j;S.ts=Date.now();
+  try{localStorage.setItem("baca",JSON.stringify(S))}catch(x){}
+  pushFirebase();
+}
+
+function pushFirebase(){
+  if(!db) return;
+  $("cl").textContent = "☁️ Menyimpan ke Firebase...";
+  db.collection("users").doc("default_user").set({
+    json: JSON.stringify(S),
+    ts: S.ts || Date.now()
+  }).then(function(){
+    $("cl").textContent = "☁️ Tersimpan di Firebase Cloud";
+  }).catch(function(err){
+    $("cl").textContent = "☁️ Mode lokal (Gagal sync Firebase)";
+  });
+}
+
+function syncFirebase(){
+  if(!db) {
+    $("cl").textContent = "☁️ Mode lokal (Firebase tidak aktif)";
+    return;
+  }
+  $("cl").textContent = "☁️ Sinkronisasi Firebase...";
+  db.collection("users").doc("default_user").get().then(function(doc){
+    if(doc.exists){
+      var cloudData = doc.data();
+      if(cloudData.json && (cloudData.ts || 0) > (S.ts || 0)){
+        S = JSON.parse(cloudData.json);
+        last = sig();
+        try{localStorage.setItem("baca",JSON.stringify(S))}catch(e){}
+        applyTheme(S.theme||"auto");
+        render();
+        $("cl").textContent = "☁️ Data tersinkron dari Cloud";
+      } else {
+        pushFirebase();
+      }
+    } else {
+      pushFirebase();
+    }
+  }).catch(function(){
+    $("cl").textContent = "☁️ Mode lokal (Offline)";
+  });
+}
+
+function td(o){var d=new Date();d.setDate(d.getDate()+(o||0));return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+var $=function(i){return document.getElementById(i)};
+
+function applyTheme(t){
+  S.theme=t;
+  if(t=="dark") document.documentElement.setAttribute("data-theme","dark");
+  else if(t=="light") document.documentElement.setAttribute("data-theme","light");
+  else document.documentElement.removeAttribute("data-theme");
+  $("thm").textContent = "🎨 Tema: " + (t=="dark"?"Gelap":(t=="light"?"Terang":"Otomatis"));
+}
+
+$("thm").onclick = function(){
+  var modes = ["auto","light","dark"];
+  var next = modes[(modes.indexOf(S.theme)+1)%modes.length];
+  applyTheme(next);
+  save();
+};
+
+function covered(b){
+  var L=S.logs.filter(function(l){return l.book==b&&(l.r||1)==((S.rounds||{})[b]||1)}).map(function(l){return[l.from,l.to]}).sort(function(a,b){return a[0]-b[0]});
+  var n=0,end=0;
+  L.forEach(function(r){var s=Math.max(r[0],end+1);if(r[1]>=s){n+=r[1]-s+1;end=r[1]}});
+  return n;
+}
+
+function render(){
+  var bs=Object.keys(S.books);
+  if(!bs.length){
+    $("pct").textContent="–";$("fill").style.width="0";
+    $("sub").textContent="Belum ada buku. Tambahkan lewat menu Buku Saya.";
+    $("rr").style.display="none";$("bk").innerHTML="";$("rec").innerHTML="";
+    $("today").textContent=$("week").textContent=0;$("ch").innerHTML="";
+    $("logs").innerHTML="<div class='mu' style='padding:10px 0'>Belum ada riwayat bacaan.</div>";
+    S.init=true;allb();wl();stats();hab();save();return;
+  }
+  if(!S.books[S.sel])S.sel=bs[0];
+  $("bk").innerHTML=bs.map(function(b){return"<option"+(b==S.sel?" selected":"")+">"+esc(b)+"</option>"}).join("");
+  var tot=S.books[S.sel],c=Math.min(covered(S.sel),tot),p=Math.round(c/tot*1000)/10;
+  $("pct").textContent=p+"%";$("fill").style.width=p+"%";
+  var rd=(S.rounds||{})[S.sel]||1;
+  var gnrStr = S.genres&&S.genres[S.sel] ? " · ["+esc(S.genres[S.sel])+"]" : "";
+  $("sub").textContent=((S.authors||{})[S.sel]?S.authors[S.sel]+" ":"") + gnrStr + (rd>1?" · Bacaan ke-"+rd+" · ":" · ")+c+" dari "+tot+" hlm dibaca · sisa "+(tot-c);
+  $("rr").style.display=c>=tot?"block":"none";
+
+  var per={};S.logs.filter(function(l){return l.book==S.sel}).forEach(function(l){per[l.date]=(per[l.date]||0)+l.to-l.from+1});
+  var days=[],mx=1;for(var i=6;i>=0;i--){var k=td(-i);days.push([k,per[k]||0]);mx=Math.max(mx,per[k]||0)}
+  $("today").textContent=per[td()]||0;$("week").textContent=days.reduce(function(a,d){return a+d[1]},0);
+  var any={};S.logs.forEach(function(l){any[l.date]=1});var st=0,o=any[td()]?0:-1;while(any[td(o)]){st++;o--}$("streak").textContent=st;
+  
+  $("ch").innerHTML=days.map(function(d,i){var h=d[1]/mx*80,x=i*43+8;return'<rect x="'+x+'" y="'+(95-h)+'" width="30" height="'+h+'" rx="4" fill="var(--ac)"/><text x="'+(x+15)+'" y="'+(90-h)+'" font-size="10" text-anchor="middle" fill="var(--mu)">'+(d[1]||"")+'</text><text x="'+(x+15)+'" y="112" font-size="10" text-anchor="middle" fill="var(--mu)">'+d[0].slice(8)+'</text>'}).join("");
+
+  $("logs").innerHTML=S.logs.slice().sort(function(a,b){return a.date<b.date?1:-1}).map(function(l){
+    return'<div class="log"><div class="log-header"><span><b>'+esc(l.book)+'</b> <span class="mu">(hlm '+l.from+'–'+l.to+')</span></span><span><a onclick="el('+l.id+')">ubah</a> · <a onclick="del('+l.id+')">hapus</a></span></div><div class="mu">'+l.date+(l.r>1?' · Putaran ke-'+l.r:'')+'</div>'+(l.note?'<div class="log-note">“'+esc(l.note)+'”</div>':'')+'</div>'
+  }).join("");
+
+  $("t").innerHTML=bs.map(function(b){return"<option"+(b==S.sel?" selected":"")+">"+esc(b)+"</option>"}).join("");
+  $("tot").value=tot;rec(tot,c,per);wl();allb();stats();hab();save();
+}
+
+var BOOKS=[["Atomic Habits","James Clear","Kebiasaan"],["Filosofi Teras","Henry Manampiring","Filsafat Praktis"],["Man's Search for Meaning","Viktor Frankl","Psikologi"],["Deep Work","Cal Newport","Produktivitas"],["Sapiens","Yuval Noah Harari","Sejarah"],["Bumi Manusia","Pramoedya Ananta Toer","Novel Klasik"],["Laskar Pelangi","Andrea Hirata","Novel"]];
+
+function rec(tot,c,per){
+  S.targets=S.targets||{};var rem=tot-c,h=[],sum=0,mx=0;
+  for(var i=0;i<14;i++)sum+=per[td(-i)]||0;var avg=sum/14;
+  S.logs.forEach(function(l){if(l.book==S.sel&&(l.r||1)==((S.rounds||{})[S.sel]||1))mx=Math.max(mx,l.to)});
+  $("tg").value=S.targets[S.sel]||"";
+  if(rem<=0)h.push("🎉 Selamat, buku ini tamat! Tekan Baca Ulang untuk putaran baru, atau tambahkan buku baru.");
+  else{
+    if(!per[td()])h.push("Belum baca hari ini. Lanjutkan dari hlm "+(mx+1)+".");else h.push("Bagus, hari ini sudah "+per[td()]+" hlm.");
+    var tg=S.targets[S.sel];
+    if(tg){
+      var dl=Math.round((new Date(tg+"T00:00:00")-new Date(td()+"T00:00:00"))/864e5);
+      if(dl<0)h.push("Target "+tg+" sudah lewat. Atur target baru.");
+      else{var need=Math.ceil(rem/Math.max(dl,1));h.push("Untuk selesai pada "+tg+", baca sekitar "+need+" hlm/hari."+(avg>0?(avg>=need?" Kecepatanmu sudah cukup ✅":" Kecepatanmu ("+Math.round(avg)+" hlm/hari) masih kurang."):""))}
+    }
+    if(avg>0){var dd=Math.ceil(rem/avg);h.push("Dengan rata-rata "+Math.round(avg*10)/10+" hlm/hari, estimasi tamat: "+td(dd)+" ("+dd+" hari lagi).")}
+    else h.push("Catat bacaan beberapa hari untuk prediksi tanggal tamat.")
+  }
+  $("rec").innerHTML=h.map(function(x){return"<li>"+esc(x)+"</li>"}).join("");
+  var have=Object.keys(S.books).map(function(b){return b.toLowerCase()});
+  $("nb").innerHTML=BOOKS.filter(function(b){return have.indexOf(b[0].toLowerCase())<0}).slice(0,4).map(function(b){return'<div class="log"><div class="log-header"><span><b>'+esc(b[0])+'</b><br><span class="mu">'+esc(b[1])+' · '+b[2]+'</span></span><a data-t="'+esc(b[0])+'" data-a="'+esc(b[1])+'" data-g="'+esc(b[2])+'" onclick="pick(this)">+ Pilih</a></div></div>'}).join("");
+}
+
+function wl(){
+  S.wish=S.wish||[];
+  $("wl").innerHTML=S.wish.length?S.wish.map(function(w){
+    return'<div class="log"><div class="log-header"><span><b>'+esc(w.t)+'</b>'+(w.a?'<br><span class="mu">'+esc(w.a)+(w.g?' · '+esc(w.g):'')+'</span>':'')+'</span><span><a data-t="'+esc(w.t)+'" data-a="'+esc(w.a||"")+'" data-g="'+esc(w.g||"")+'" onclick="pick(this)">mulai</a> · <a onclick="ew('+w.id+')">ubah</a> · <a onclick="delw('+w.id+')">hapus</a></span></div></div>'
+  }).join(""):'<div class="log mu">Belum ada wishlist. Tambahkan buku yang ingin dibaca nanti!</div>';
+}
+
+function delw(id){S.wish=S.wish.filter(function(w){return w.id!=id});render()}
+function pick(a){
+  go("buku");
+  $("nt").value=a.getAttribute("data-t");
+  $("na").value=a.getAttribute("data-a")||"";
+  $("ng").value=a.getAttribute("data-g")||"";
+  $("nn").value="";$("nn").focus();
+}
+
+var T={ringkasan:"📖 Dashboard Baca Harian",buku:"📚 Buku Saya",catat:"✏️ Catat Bacaan",statistik:"📊 Statistik",rekomendasi:"💡 Rekomendasi"};
+function go(p){
+  document.querySelectorAll("section[data-p]").forEach(function(s){s.style.display=s.getAttribute("data-p")==p?"":"none"});
+  document.querySelectorAll("#sb a").forEach(function(a){a.className=a.getAttribute("data-n")==p?"on":""});
+  $("ttl").textContent=T[p];$("sb").className="";window.scrollTo(0,0);
+}
+
+function allb(){
+  $("allb").innerHTML=Object.keys(S.books).map(function(b){
+    var t=S.books[b],c=Math.min(covered(b),t),p=Math.round(c/t*100),r=(S.rounds||{})[b]||1;
+    var gnr = S.genres&&S.genres[b] ? ' <span class="badge">'+esc(S.genres[b])+'</span>' : '';
+    return'<div class="log" style="display:block;cursor:pointer" data-b="'+esc(b)+'" onclick="selb(this)"><div style="display:flex;justify-content:space-between"><b>'+esc(b)+gnr+'</b><span>'+p+'% · <a onclick="event.stopPropagation();eb(this.parentNode.parentNode.parentNode)">ubah</a></span></div><div class="bar"><i style="width:'+p+'%"></i></div><span class="mu">'+((S.authors||{})[b]?esc(S.authors[b])+' · ':'')+c+' / '+t+' hlm'+(r>1?' · putaran ke-'+r:'')+'</span></div>'
+  }).join("");
+}
+
+function selb(e){S.sel=e.getAttribute("data-b");render();go("ringkasan")}
+
+function stats(){
+  var pg={},tot=0,best=0,bd="";
+  S.logs.forEach(function(l){pg[l.date]=(pg[l.date]||0)+l.to-l.from+1;tot+=l.to-l.from+1});
+  var ds=Object.keys(pg);ds.forEach(function(d){if(pg[d]>best){best=pg[d];bd=d}});
+  var done=Object.keys(S.books).filter(function(b){return covered(b)>=S.books[b]}).length;
+  $("st").innerHTML=[[tot,"total hlm dibaca"],[ds.length,"hari aktif membaca"],[ds.length?Math.round(tot/ds.length):0,"rata-rata hlm/hari"],[done,"buku tamat"]].map(function(x){return'<div class="stc"><b>'+x[0]+'</b><span class="mu">'+x[1]+'</span></div>'}).join("");
+  $("best").textContent=best?"Hari terbaik: "+bd+" ("+best+" hlm)":"";
+  
+  var h="";for(var j=0;j<84;j++){var k=td(j-83),n=pg[k]||0;h+='<rect x="'+Math.floor(j/7)*21+'" y="'+j%7*21+'" width="18" height="18" rx="4" fill="'+(n?"var(--ac)":"var(--tr)")+'" fill-opacity="'+(n?0.3+0.7*Math.min(n/best,1):1)+'" onclick="hm(\''+k+'\','+n+')"/>'}
+  $("hm").innerHTML=h;
+
+  var gCount={};
+  Object.keys(S.books).forEach(function(b){
+    var g = (S.genres&&S.genres[b]) ? S.genres[b] : "Lainnya";
+    gCount[g] = (gCount[g]||0) + 1;
+  });
+  var totalB = Object.keys(S.books).length;
+  if(totalB>0){
+    $("gnr").innerHTML = Object.keys(gCount).map(function(g){
+      var pct = Math.round(gCount[g]/totalB*100);
+      return '<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>'+esc(g)+'</span><span>'+gCount[g]+' buku ('+pct+'%)</span></div><div class="bar"><i style="width:'+pct+'%"></i></div></div>';
+    }).join("");
+  } else {
+    $("gnr").innerHTML = "<div class='mu'>Belum ada buku untuk dianalisis.</div>";
+  }
+
+  var any={};S.logs.forEach(function(l){any[l.date]=1});var st=0,o=any[td()]?0:-1;while(any[td(o)]){st++;o--}
+  $("sttl").textContent = "Total " + tot + " Halaman Dibaca";
+  $("ssub").textContent = done + " Buku Tamat · " + st + " Hari Beruntun";
+}
+
+function hm(k,n){$("hd").textContent=k+": "+n+" halaman"}
+
+var EB="";
+function eb(e){
+  EB=e.getAttribute("data-b");
+  $("et").value=EB;
+  $("ea").value=(S.authors||{})[EB]||"";
+  $("eg").value=(S.genres||{})[EB]||"";
+  $("en").value=S.books[EB];
+  $("edl").textContent="Hapus buku";
+  $("eb").style.display="";
+  $("eb").scrollIntoView();
+}
+
+function ew(id){
+  var w=S.wish.filter(function(x){return x.id==id})[0];if(!w)return;
+  $("nt").value=w.t;$("na").value=w.a||"";$("ng").value=w.g||"";$("nn").value="";
+  delw(id);$("nt").focus();
+}
+
+function hab(){
+  var pg={},h=[],wd=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"],tw={},cn={},i,k=0,a=0,b=0;
+  S.logs.forEach(function(l){pg[l.date]=(pg[l.date]||0)+l.to-l.from+1});
+  var ds=Object.keys(pg).sort();
+  if(ds.length<3){$("hab").innerHTML="<li>Catat bacaan minimal 3 hari untuk melihat analisis kebiasaanmu.</li>";return}
+  ds.forEach(function(d){var w=new Date(d+"T00:00:00").getDay();tw[w]=(tw[w]||0)+pg[d];cn[w]=(cn[w]||0)+1});
+  var bw=-1,bv=0;for(var w in tw){var v=tw[w]/cn[w];if(v>bv){bv=v;bw=w}}
+  h.push("Hari paling produktifmu: "+wd[bw]+" (rata-rata "+Math.round(bv)+" hlm).");
+  for(i=0;i<14;i++)if(pg[td(-i)])k++;
+  h.push("Kamu membaca "+k+" dari 14 hari terakhir.");
+  for(i=0;i<7;i++){a+=pg[td(-i)]||0;b+=pg[td(-i-7)]||0}
+  h.push(b?"7 hari terakhir: "+a+" hlm, "+(a>=b?"naik ":"turun ")+Math.abs(Math.round((a-b)/b*100))+"% dari 7 hari sebelumnya ("+b+" hlm).":"7 hari terakhir: "+a+" hlm.");
+  var st=1,mxs=1;for(i=1;i<ds.length;i++){var df=Math.round((new Date(ds[i]+"T00:00:00")-new Date(ds[i-1]+"T00:00:00"))/864e5);st=df==1?st+1:1;if(st>mxs)mxs=st}
+  h.push("Hari beruntun terpanjang: "+mxs+" hari.");
+  if(k<7)h.push("Tips: target kecil, misalnya 5 halaman per hari, membantu menjaga ritme.");
+  $("hab").innerHTML=h.map(function(x){return"<li>"+esc(x)+"</li>"}).join("");
+}
+
+var EL=0;
+function endEL(){EL=0;$("add").textContent="Simpan Bacaan";$("lc").style.display="none"}
+function el(id){
+  var l=S.logs.filter(function(x){return x.id==id})[0];if(!l)return;
+  EL=id;S.sel=l.book;render();
+  $("d").value=l.date;$("f").value=l.from;$("e").value=l.to;
+  $("ntxt").value=l.note||"";
+  $("add").textContent="Perbarui Catatan";$("lc").style.display="block";$("add").scrollIntoView();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function del(id){S.logs=S.logs.filter(function(l){return l.id!=id});render()}
+
+$("bk").onchange=function(){S.sel=this.value;render()};
+$("tg").onchange=function(){S.targets=S.targets||{};S.targets[S.sel]=this.value;render()};
+
+function isOverlapping(book, from, to, currentLogId) {
+  var currentRound = ((S.rounds||{})[book]||1);
+  return S.logs.some(function(l) {
+    if (l.id === currentLogId) return false;
+    if (l.book !== book) return false;
+    if ((l.r || 1) !== currentRound) return false;
+    return (from <= l.to && to >= l.from);
+  });
+}
+
+$("add").onclick=function(){
+  var t=$("t").value.trim(),tot=+$("tot").value,f=+$("f").value,e=+$("e").value,nt=$("ntxt").value.trim();
+  if(!t||!tot||!f||!e||e<f||e>tot){alert("Periksa isian: halaman akhir harus ≥ awal dan ≤ total.");return}
+  if(isOverlapping(t, f, e, EL)){
+    if(!confirm("Peringatan: Rentang halaman ini tumpang-tindih dengan catatan sebelumnya pada buku ini. Tetap simpan?")) return;
+  }
+  S.books[t]=tot;S.sel=t;var dt=$("d").value||td(),o=EL?S.logs.filter(function(x){return x.id==EL})[0]:null;
+  if(o){
+    var ob=o.book;o.date=dt;o.book=t;o.from=f;o.to=e;o.note=nt;
+    if(ob!=t)o.r=(S.rounds||{})[t]||1;
+  } else {
+    S.logs.push({id:Date.now(),date:dt,book:t,from:f,to:e,note:nt,r:(S.rounds||{})[t]||1});
+  }
+  endEL();$("f").value=$("e").value=$("ntxt").value="";render();
+};
+
+$("rr").onclick=function(){S.rounds=S.rounds||{};S.rounds[S.sel]=(S.rounds[S.sel]||1)+1;render()};
+
+$("nadd").onclick=function(){
+  var t=$("nt").value.trim(),n=+$("nn").value,a=$("na").value.trim(),g=$("ng").value.trim();
+  if(!t){alert("Isi judul buku.");return}
+  S.wish=(S.wish||[]).filter(function(w){return w.t.toLowerCase()!=t.toLowerCase()});
+  if(n>0){
+    S.books[t]=n;S.sel=t;
+    S.authors=S.authors||{};if(a)S.authors[t]=a;
+    S.genres=S.genres||{};if(g)S.genres[t]=g;
+    $("nt").value=$("na").value=$("ng").value=$("nn").value="";render();go("ringkasan");
+  }else{
+    S.wish.push({id:Date.now(),t:t,a:a,g:g});
+    $("nt").value=$("na").value=$("ng").value="";render();
+  }
+};
+
+$("t").onchange=function(){S.sel=this.value;render()};
+$("ecx").onclick=function(){$("eb").style.display="none";EB=""};
+
+$("esv").onclick=function(){
+  var t=$("et").value.trim(),n=+$("en").value,a=$("ea").value.trim(),g=$("eg").value.trim();
+  if(!t||!(n>0)||!EB)return;
+  if(t!=EB){
+    if(S.books[t]){alert("Judul itu sudah ada.");return}
+    S.books[t]=n;delete S.books[EB];
+    S.logs.forEach(function(l){if(l.book==EB)l.book=t});
+    if(S.rounds&&S.rounds[EB]){S.rounds[t]=S.rounds[EB];delete S.rounds[EB]}
+    if(S.targets&&S.targets[EB]){S.targets[t]=S.targets[EB];delete S.targets[EB]}
+    if(S.genres&&S.genres[EB]){S.genres[t]=S.genres[EB];delete S.genres[EB]}
+    if(S.sel==EB)S.sel=t;
+  }else S.books[EB]=n;
+  S.authors=S.authors||{};delete S.authors[EB];if(a)S.authors[t]=a;
+  S.genres=S.genres||{};delete S.genres[EB];if(g)S.genres[t]=g;
+  $("eb").style.display="none";EB="";render();
+};
+
+$("edl").onclick=function(){
+  if(this.textContent!="Yakin? Tekan lagi"){this.textContent="Yakin? Tekan lagi";return}
+  delete S.books[EB];S.logs=S.logs.filter(function(l){return l.id!=EB});
+  if(S.rounds)delete S.rounds[EB];if(S.authors)delete S.authors[EB];
+  if(S.genres)delete S.genres[EB];if(S.targets)delete S.targets[EB];
+  if(S.sel==EB)S.sel="";
+  $("eb").style.display="none";EB="";render();
+};
+
+$("xp").onclick=function(){
+  var m=$("bm");
+  var blob = new Blob([JSON.stringify(S,null,1)], {type: "application/json"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="cadangan-baca-"+td()+".json";a.click();
+  m.textContent="Cadangan JSON diunduh.";
+};
+
+$("xcsv").onclick=function(){
+  var m=$("bm");
+  if(!S.logs.length){m.textContent="Belum ada riwayat untuk diekspor.";return}
+  var csv = "Tanggal,Buku,Dari Halaman,Sampai Halaman,Jumlah Halaman,Catatan\n";
+  S.logs.forEach(function(l){
+    var note = (l.note||"").replace(/"/g, '""');
+    csv += '"'+l.date+'","'+l.book.replace(/"/g, '""')+'",'+l.from+','+l.to+','+(l.to-l.from+1)+',"'+note+'"\n';
+  });
+  var blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="riwayat-baca-"+td()+".csv";a.click();
+  m.textContent="Data CSV berhasil diunduh.";
+};
+
+$("im").onclick=function(){$("fi").click()};
+$("fi").onchange=function(){
+  var f=this.files[0],m=$("bm");if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d||typeof d.books!="object"||!Array.isArray(d.logs)) throw new Error("Format JSON tidak valid");
+      S=d;S.init=true;if(!S.theme)S.theme="auto";
+      applyTheme(S.theme);render();go("ringkasan");
+      m.textContent="Data berhasil dipulihkan!";
+    }catch(e){
+      m.textContent="Gagal mengimpor: Berkas JSON tidak sesuai format cadangan.";
+    }
+  };
+  r.readAsText(f);this.value="";
+};
+
+$("lc").onclick=function(){endEL();$("f").value=$("e").value=$("ntxt").value=""};
+$("mb").onclick=function(){$("sb").classList.toggle("open")};
+document.querySelectorAll("#sb a").forEach(function(a){a.onclick=function(){go(this.getAttribute("data-n"))}});
+$("d").value=td();var AD=td();
+function chk(){if(td()!=AD){if($("d").value==AD)$("d").value=td();AD=td();render()}}
+document.addEventListener("visibilitychange",chk);window.addEventListener("focus",chk);
+
+// Register Service Worker untuk PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(reg){
+      console.log('SW Registered:', reg.scope);
+    }).catch(function(err){
+      console.log('SW Registration failed:', err);
+    });
+  });
+}
+
+load();last=sig();render();go("ringkasan");syncFirebase();
+</script></body></html>
