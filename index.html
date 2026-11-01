@@ -84,6 +84,19 @@ nav a{flex:1;text-align:center;font-size:11px;padding:6px 2px;margin:0;line-heig
 <div class="row" style="margin-top:10px"><button id="xp">⬇️ Unduh cadangan</button><button id="im" style="background:var(--tr);color:var(--tx)">⬆️ Impor file</button></div>
 <input id="fi" type="file" accept=".json,application/json" style="display:none">
 <div class="mu" id="bm" style="margin-top:8px"></div></div></section>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+            apiKey: "AIzaSyC_BLhEsBj-tgvINllYScA5aTXC3gv1OD0",
+            authDomain: "baca-buku-4cec8.firebaseapp.com",
+            projectId: "baca-buku-4cec8",
+            storageBucket: "baca-buku-4cec8.firebasestorage.app",
+            messagingSenderId: "60082725935",
+            appId: "1:60082725935:web:31ffdb4063dc22844a52da",
+            measurementId: "G-R9GWN20Y7B"
+        };
+</script>
 <script>
 var S={books:{},logs:[],sel:""};
 function load(){try{var r=localStorage.getItem("baca");if(r){S=JSON.parse(r);if(!S.ts)S.ts=1}}catch(x){}
@@ -158,9 +171,14 @@ $("hab").innerHTML=h.map(function(x){return"<li>"+esc(x)+"</li>"}).join("")}
 var DB=null,pt=null;
 function push(){if(!DB)return;clearTimeout(pt);pt=setTimeout(function(){DB.set({json:JSON.stringify(S),ts:S.ts||0}).then(function(){$("cl").textContent="☁️ Tersimpan online"}).catch(function(){$("cl").textContent="☁️ Gagal menyimpan online"})},800)}
 async function sync(){try{var snap=await DB.get(),cs=snap.exists?JSON.parse(snap.data().json||"null"):null;
-if(cs&&typeof cs.books=="object"&&(cs.ts||0)>(S.ts||0)){S=cs;last=sig();try{localStorage.setItem("baca",JSON.stringify(S))}catch(x){}render();$("cl").textContent="☁️ Tersinkron"}
+var demo=!S.ts&&S.logs.length==1&&S.logs[0].id===1;
+if(cs&&typeof cs.books=="object"&&((cs.ts||0)>(S.ts||0)||demo)){S=cs;last=sig();try{localStorage.setItem("baca",JSON.stringify(S))}catch(x){}render();$("cl").textContent="☁️ Tersinkron"}
+else if(cs&&typeof cs.books!="object"){$("cl").textContent="⚠️ Format data online berbeda, tidak ditimpa"}
+else if(demo){$("cl").textContent="☁️ Tersambung"}
 else if(!cs||(cs.ts||0)<(S.ts||0)){push()}else $("cl").textContent="☁️ Tersinkron"}catch(e){$("cl").textContent="☁️ Sinkron online gagal"}}
-async function cloud(){try{if(!window.claude)return;var u=await claude.use("user"),d=await claude.use("db");if(!u||!d)return;var id=await u.id();if(!id)return;DB=d.doc("data/users/"+id+"/baca");$("wr").style.display="none";$("cl").textContent="☁️ Menyambung…";await sync()}catch(e){$("cl").textContent=LS?"☁️ Mode lokal (online tidak tersedia)":"⚠️ Data tidak tersimpan. Masuk ke claude.ai agar tersimpan online."}}
+async function cloudClaude(){try{if(!window.claude)return;var u=await claude.use("user"),d=await claude.use("db");if(!u||!d)return;var id=await u.id();if(!id)return;DB=d.doc("data/users/"+id+"/baca");$("wr").style.display="none";$("cl").textContent="☁️ Menyambung…";await sync()}catch(e){$("cl").textContent=LS?"☁️ Mode lokal (online tidak tersedia)":"⚠️ Data tidak tersimpan. Masuk ke claude.ai agar tersimpan online."}}
+function fbDoc(){try{if(typeof firebase=="undefined")return null;if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);var d=firebase.firestore().collection("users").doc("default_user");return{get:function(){return d.get()},set:function(o){return d.set(o,{merge:true})}}}catch(e){return null}}
+async function cloud(){var f=fbDoc();if(!f)return cloudClaude();DB=f;$("wr").style.display="none";$("cl").textContent="☁️ Menyambung…";await sync()}
 var EL=0;
 function endEL(){EL=0;$("add").textContent="Simpan";$("lc").style.display="none"}
 function el(id){var l=S.logs.filter(function(x){return x.id==id})[0];if(!l)return;EL=id;S.sel=l.book;render();$("d").value=l.date;$("f").value=l.from;$("e").value=l.to;$("ln").value=l.n||"";$("add").textContent="Perbarui";$("lc").style.display="block";$("add").scrollIntoView()}
