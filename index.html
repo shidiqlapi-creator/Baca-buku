@@ -15,7 +15,7 @@ h1{font-size:20px;margin:4px 0 12px}
 .bar{height:12px;background:var(--tr);border-radius:8px;overflow:hidden;margin:8px 0}
 .bar i{display:block;height:100%;background:var(--ac);width:0;transition:width .4s}
 .row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:90px}
-input,select,button{font:inherit;padding:9px;border-radius:9px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100%}
+input,select,textarea,button{font:inherit;padding:9px;border-radius:9px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);width:100%}
 button{background:var(--ac);color:#fff;border:0;font-weight:600}
 label{font-size:12px;color:var(--mu);display:block;margin:6px 0 2px}
 .stat{display:flex;justify-content:space-between;gap:8px;text-align:center}.stat b{display:block;font-size:22px}
@@ -59,6 +59,7 @@ ul{padding-left:18px;margin:8px 0 0}li{margin:6px 0;font-size:14px}
 <label>Judul buku</label><select id="t"></select>
 <div class="row"><div><label>Total halaman (ubah di Buku saya)</label><input id="tot" type="number" readonly style="opacity:.7"></div><div><label>Tanggal</label><input id="d" type="date"></div></div>
 <div class="row"><div><label>Dari hlm</label><input id="f" type="number" min="1"></div><div><label>Sampai hlm</label><input id="e" type="number" min="1"></div></div>
+<label>Catatan (opsional)</label><textarea id="ln" rows="3" placeholder="Apa yang kamu pelajari atau rasakan dari bacaan ini?"></textarea>
 <p></p><button id="add">Simpan</button><button id="lc" style="display:none;background:var(--tr);color:var(--tx);margin-top:8px">Batal ubah</button></div>
 <div class="card"><b>Riwayat</b><div id="logs"></div></div></section>
 <section data-p="statistik"><div class="card"><b>Ringkasan semua buku</b><div class="g" id="st"></div><div class="mu" id="best" style="margin-top:8px"></div></div>
@@ -87,7 +88,7 @@ var days=[],mx=1;for(var i=6;i>=0;i--){var k=td(-i);days.push([k,per[k]||0]);mx=
 $("today").textContent=per[td()]||0;$("week").textContent=days.reduce(function(a,d){return a+d[1]},0);
 var any={};S.logs.forEach(function(l){any[l.date]=1});var st=0,o=any[td()]?0:-1;while(any[td(o)]){st++;o--}$("streak").textContent=st;
 $("ch").innerHTML=days.map(function(d,i){var h=d[1]/mx*80,x=i*43+8;return'<rect x="'+x+'" y="'+(95-h)+'" width="30" height="'+h+'" rx="4" fill="var(--ac)"/><text x="'+(x+15)+'" y="'+(90-h)+'" font-size="10" text-anchor="middle" fill="var(--mu)">'+(d[1]||"")+'</text><text x="'+(x+15)+'" y="112" font-size="10" text-anchor="middle" fill="var(--mu)">'+d[0].slice(8)+'</text>'}).join("");
-$("logs").innerHTML=S.logs.slice().sort(function(a,b){return a.date<b.date?1:-1}).map(function(l){return'<div class="log"><span>'+l.date+" · "+esc(l.book)+(l.r>1?" (ke-"+l.r+")":"")+" · hlm "+l.from+"–"+l.to+'</span><span><a onclick="el('+l.id+')">ubah</a> · <a onclick="del('+l.id+')">hapus</a></span></div>'}).join("");
+$("logs").innerHTML=S.logs.slice().sort(function(a,b){return a.date<b.date?1:-1}).map(function(l){return'<div class="log"><span>'+l.date+" · "+esc(l.book)+(l.r>1?" (ke-"+l.r+")":"")+" · hlm "+l.from+"–"+l.to+(l.n?'<br><span class="mu">📝 '+esc(l.n)+'</span>':'')+'</span><span><a onclick="el('+l.id+')">ubah</a> · <a onclick="del('+l.id+')">hapus</a></span></div>'}).join("");
 $("t").innerHTML=bs.map(function(b){return"<option"+(b==S.sel?" selected":"")+">"+esc(b)+"</option>"}).join("");$("tot").value=tot;rec(tot,c,per);wl();allb();stats();hab();lastc();save()}
 var BOOKS=[["Atomic Habits","James Clear","kebiasaan"],["Filosofi Teras","Henry Manampiring","filsafat praktis"],["Man's Search for Meaning","Viktor Frankl","makna hidup"],["Deep Work","Cal Newport","fokus & produktivitas"],["Sapiens","Yuval Noah Harari","sejarah manusia"],["Bumi Manusia","Pramoedya Ananta Toer","novel klasik"],["Laskar Pelangi","Andrea Hirata","novel"]];
 function rec(tot,c,per){S.targets=S.targets||{};var rem=tot-c,h=[],sum=0,mx=0;
@@ -147,12 +148,12 @@ else if(!cs||(cs.ts||0)<(S.ts||0)){push()}else $("cl").textContent="☁️ Tersi
 async function cloud(){try{if(!window.claude)return;var u=await claude.use("user"),d=await claude.use("db");if(!u||!d)return;var id=await u.id();if(!id)return;DB=d.doc("data/users/"+id+"/baca");$("wr").style.display="none";$("cl").textContent="☁️ Menyambung…";await sync()}catch(e){$("cl").textContent=LS?"☁️ Mode lokal (online tidak tersedia)":"⚠️ Data tidak tersimpan. Masuk ke claude.ai agar tersimpan online."}}
 var EL=0;
 function endEL(){EL=0;$("add").textContent="Simpan";$("lc").style.display="none"}
-function el(id){var l=S.logs.filter(function(x){return x.id==id})[0];if(!l)return;EL=id;S.sel=l.book;render();$("d").value=l.date;$("f").value=l.from;$("e").value=l.to;$("add").textContent="Perbarui";$("lc").style.display="block";$("add").scrollIntoView()}
+function el(id){var l=S.logs.filter(function(x){return x.id==id})[0];if(!l)return;EL=id;S.sel=l.book;render();$("d").value=l.date;$("f").value=l.from;$("e").value=l.to;$("ln").value=l.n||"";$("add").textContent="Perbarui";$("lc").style.display="block";$("add").scrollIntoView()}
 function lastLog(b){var r=(S.rounds||{})[b]||1,L=S.logs.filter(function(l){return l.book==b&&(l.r||1)==r});L.sort(function(x,y){return x.date<y.date?-1:x.date>y.date?1:x.id-y.id});return L[L.length-1]}
 function lastc(){var l=S.sel?lastLog(S.sel):null,e=$("lastc"),tot=S.books[S.sel];
 if(!l||!tot){e.innerHTML='<div class="mu">Halaman terakhir dibaca</div><div class="mu" style="margin-top:6px">Belum ada catatan bacaan untuk buku ini.</div>';return}
 var when=l.date==td()?"hari ini":l.date==td(-1)?"kemarin":l.date;
-e.innerHTML='<div class="mu">Halaman terakhir dibaca</div><div style="display:flex;align-items:baseline;gap:10px"><span class="big">'+l.to+'</span><span class="mu">'+when+' · hlm '+l.from+'–'+l.to+'</span></div><div style="margin-top:6px">'+(l.to>=tot?'Sudah sampai halaman terakhir buku 🎉':'Lanjut dari <b>hlm '+(l.to+1)+'</b> · sisa '+(tot-l.to)+' hlm')+'</div>'}
+e.innerHTML='<div class="mu">Halaman terakhir dibaca</div><div style="display:flex;align-items:baseline;gap:10px"><span class="big">'+l.to+'</span><span class="mu">'+when+' · hlm '+l.from+'–'+l.to+'</span></div><div style="margin-top:6px">'+(l.to>=tot?'Sudah sampai halaman terakhir buku 🎉':'Lanjut dari <b>hlm '+(l.to+1)+'</b> · sisa '+(tot-l.to)+' hlm')+'</div>'+(l.n?'<div class="mu" style="margin-top:6px">📝 '+esc(l.n)+'</div>':'')}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function del(id){S.logs=S.logs.filter(function(l){return l.id!=id});render()}
 $("bk").onchange=function(){S.sel=this.value;render()};
@@ -160,8 +161,8 @@ $("tg").onchange=function(){S.targets=S.targets||{};S.targets[S.sel]=this.value;
 $("add").onclick=function(){var t=$("t").value.trim(),tot=+$("tot").value,f=+$("f").value,e=+$("e").value;
 if(!t||!tot||!f||!e||e<f||e>tot){alert("Periksa isian: halaman akhir harus ≥ awal dan ≤ total.");return}
 S.books[t]=tot;S.sel=t;var dt=$("d").value||td(),o=EL?S.logs.filter(function(x){return x.id==EL})[0]:null;
-if(o){var ob=o.book;o.date=dt;o.book=t;o.from=f;o.to=e;if(ob!=t)o.r=(S.rounds||{})[t]||1}else S.logs.push({id:Date.now(),date:dt,book:t,from:f,to:e,r:(S.rounds||{})[t]||1});
-endEL();$("f").value=$("e").value="";render()};
+if(o){var ob=o.book;o.date=dt;o.book=t;o.from=f;o.to=e;o.n=$("ln").value.trim();if(ob!=t)o.r=(S.rounds||{})[t]||1}else S.logs.push({id:Date.now(),date:dt,book:t,from:f,to:e,n:$("ln").value.trim(),r:(S.rounds||{})[t]||1});
+endEL();$("f").value=$("e").value=$("ln").value="";render()};
 $("rr").onclick=function(){S.rounds=S.rounds||{};S.rounds[S.sel]=(S.rounds[S.sel]||1)+1;render()};
 $("nadd").onclick=function(){var t=$("nt").value.trim(),n=+$("nn").value;if(!t){alert("Isi judul buku.");return}S.wish=(S.wish||[]).filter(function(w){return w.t.toLowerCase()!=t.toLowerCase()});if(n>0){S.books[t]=n;S.sel=t;S.authors=S.authors||{};if($("na").value.trim())S.authors[t]=$("na").value.trim();$("nt").value=$("na").value=$("nn").value="";render();go("ringkasan")}else{S.wish.push({id:Date.now(),t:t,a:$("na").value.trim()});$("nt").value=$("na").value="";render()}};
 $("t").onchange=function(){S.sel=this.value;render()};
