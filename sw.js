@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baca-harian-v3'; // naikkan versi ini setiap kali update file
+const CACHE_NAME = 'baca-harian-v4'; // naikkan versi ini setiap kali update file
 
 // Hanya file yang benar-benar ada di folder yang sama.
 const ASSETS_TO_CACHE = [
